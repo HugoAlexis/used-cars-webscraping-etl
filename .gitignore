@@ -1,0 +1,36 @@
+# Python
+__pychache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual envs
+.venv/
+env/
+venv/
+
+# IDE
+.idea/
+.vscode
+
+# OS files
+.DS_Store
+
+# Environment variables
+.env
+.env*
+
+# Tests cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Local DBs / cache / tests
+*.sqlite
