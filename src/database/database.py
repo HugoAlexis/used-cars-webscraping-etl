@@ -81,6 +81,51 @@ class Database:
         if self._connection and not self._connection.closed:
             self._connection.close()
 
+    def get_primary_key_column(self, table):
+        """
+           Retrieves the primary key column name(s) of a PostgreSQL table.
+
+           This method queries PostgreSQL system catalogs (`pg_index` and `pg_attribute`)
+           to determine the primary key defined for a table. It supports both simple
+           primary keys (one column) and composite primary keys (multiple columns).
+
+           Args:
+               table (str):
+                   Name of the table whose primary key should be retrieved.
+
+           Returns:
+               str | list[str]:
+                   - If the table has a single-column primary key, returns the column name as a string.
+                   - If the table has a composite primary key, returns a list of column names.
+
+           Raises:
+               ValueError:
+                   If the table does not have a primary key defined.
+        """
+        query = """
+            SELECT a.attname
+            FROM   pg_index i
+            JOIN   pg_attribute a 
+                   ON a.attrelid = i.indrelid
+                  AND a.attnum = ANY(i.indkey)
+            WHERE  i.indrelid = %s::regclass
+            AND    i.indisprimary;
+        """
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(query, (table,))
+            rows = cursor.fetchall()
+
+        if not rows:
+            raise ValueError(f"Table '{table}' has no primary key.")
+
+        # Si la PK es compuesta, devolver lista
+        if len(rows) > 1:
+            return [r[0] for r in rows]
+
+        # Si es solo una PK (caso común)
+        return rows[0][0]
+
     def insert_record(self, table, columns, values, autocommit=False):
         """
         Inserts a record into the specified table using the given columns and values.
@@ -305,3 +350,163 @@ class Database:
 
         except Exception:
             raise
+
+    def select_record_by_id(self, table, id):
+        """
+           Selects a single record from a table using its primary key.
+
+           This method automatically determines the table's primary key column
+           using `get_primary_key_column`, and performs a secure, parameterized
+           SELECT to retrieve the row corresponding to the given primary key value.
+
+           Args:
+               table (str):
+                   Name of the table to query.
+               id (Any):
+                   Value of the primary key for the record to retrieve.
+
+           Returns:
+               dict | None:
+                   - A dictionary representing the row (column_name → value) if found.
+                   - None if no row exists with the given primary key.
+            Raises:
+                ValueError:
+                    If the table does not have a primary key.
+                psycopg2.Error:
+                    If the database query fails.
+        """
+        id_col = self.get_primary_key_column(table)
+
+        query = sql.SQL("SELECT * FROM {table} WHERE {id_col} = %s").format(
+            table=sql.Identifier(table),
+            id_col=sql.Identifier(id_col)
+        )
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(query, (id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            col_names = [desc[0] for desc in cursor.description]
+            return dict(zip(col_names, row))
+
+    def update_record_by_id(self, table, id, dict_new_values=None, columns=None, new_values=None):
+        """
+        Updates a single record in a table by its primary key.
+
+        Allows two calling styles:
+            - dict_new_values={"col": value}
+            - columns=["col1", "col2"], new_values=[v1, v2]
+
+        Ignores internal columns prefixed with "_".
+        """
+
+        id_col = self.get_primary_key_column(table)
+
+        # Ensure record exists
+        existing = self.select_record_by_id(table, id)
+        if existing is None:
+            raise ValueError(f"Record with primary key id {id} not found.")
+
+        # ===== Build dict_new_values =====
+        # Case 1: user sent a dict
+        if dict_new_values is not None:
+            if columns or new_values:
+                raise ValueError("columns and new_values must be None when dict_new_values is used")
+            if not isinstance(dict_new_values, dict):
+                raise TypeError("dict_new_values must be a dict")
+        else:
+            # Case 2: user sent columns + new_values
+            if columns is None or new_values is None:
+                raise ValueError("Either dict_new_values OR (columns + new_values) must be provided")
+            if len(columns) != len(new_values):
+                raise ValueError("columns and new_values must be of same length")
+            dict_new_values = {c: v for c, v in zip(columns, new_values)}
+
+        # Remove internal columns
+        dict_new_values = {col: val for col, val in dict_new_values.items()
+                           if not col.startswith("_")}
+
+        # Ensure something to update
+        if not dict_new_values:
+            raise ValueError("No valid columns to update (only internal or empty).")
+
+        columns = list(dict_new_values.keys())
+        new_values = list(dict_new_values.values())
+
+        # Perform update
+        updated_rows = self.update_records(
+            table=table,
+            columns=columns,
+            values=new_values,
+            where_columns=[id_col],
+            where_operators=["="],
+            where_values=[id]
+        )
+
+        # update_records returns list of dicts
+        return updated_rows[0] if updated_rows else None
+
+    from psycopg2 import sql
+
+    def select_unique_record(self, table, **conditions):
+        """
+        Selects a single unique record from a table based on the given conditions.
+
+        Parameters
+        ----------
+        table : str
+            The name of the table to query.
+        **conditions : dict
+            Column-value pairs to use in the WHERE clause.
+            Example: select_unique_record("Sites", col1="value1", col2="value2")
+
+        Returns
+        -------
+        dict or None
+            - The unique record as a dictionary if exactly one record matches.
+            - None if no records match.
+
+        Raises
+        ------
+        ValueError
+            If more than one record matches the given conditions.
+        """
+
+        if not conditions:
+            raise ValueError("At least one condition must be provided.")
+
+        # Build WHERE clause
+        where_columns = []
+        where_operators = []
+        where_values = []
+
+        for col, val in conditions.items():
+            where_columns.append(col)
+            where_operators.append("=")
+            where_values.append(val)
+
+        # Build SQL query
+        where_clauses = [
+            sql.SQL("{} {} %s").format(sql.Identifier(col), sql.SQL(op))
+            for col, op in zip(where_columns, where_operators)
+        ]
+
+        query = sql.SQL("SELECT * FROM {} WHERE ").format(sql.Identifier(table)) + \
+                sql.SQL(" AND ").join(where_clauses)
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(query, where_values)
+            rows = cursor.fetchall()
+
+        if len(rows) == 0:
+            return None
+        if len(rows) > 1:
+            raise ValueError(
+                f"Expected exactly one record, but found {len(rows)} for conditions {conditions}"
+            )
+
+        # Convert row to dict
+        col_names = [desc[0] for desc in cursor.description]
+        return dict(zip(col_names, rows[0]))
