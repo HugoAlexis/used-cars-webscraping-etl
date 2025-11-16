@@ -14,7 +14,7 @@ def db_params():
     Fixture with the params for database connection
     """
     return {
-        "dbname": "used_cars_scraper_test",
+        "dbname": "used_cars_test",
         "user": os.getenv("DB_USERNAME"),
         "password": os.getenv("DB_PASSWORD"),
         "host": os.getenv("DB_HOST"),
@@ -26,3 +26,24 @@ def db_params():
 def cleanup_database_instance():
     yield
     Database.reset_instance()
+
+@pytest.fixture(scope="function")
+def db_instance():
+    """
+    Fixture with database object.
+    :return: Database object.
+    """
+    db = Database(
+        dbname= "used_cars_test",
+        user=os.getenv("DB_USERNAME"),
+        password=os.getenv("DB_PASSWORD"),
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
+        _use_singleton=False
+    )
+    with db.connection.cursor() as cursor:
+        cursor.execute("BEGIN;")
+    try:
+        yield db
+    finally:
+        db.connection.rollback()
