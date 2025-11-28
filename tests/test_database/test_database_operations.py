@@ -4,7 +4,7 @@ import pytest
 
 def test_inset_record_site(db_instance):
     inserted_record = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio1", "www.sitio1.com"],
     )
@@ -15,7 +15,7 @@ def test_inset_record_site(db_instance):
 
 def test_insert_record_ignores_underscore_columns(db_instance):
     inserted_record = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.sitio1.com",]
     )
@@ -35,43 +35,43 @@ def test_insert_record_invalid_table(db_instance):
 
 def test_select_all_records(db_instance):
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.sitio1.com",]
     )
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio2", "secret", "www.sitio2.com", ]
     )
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio3", "www.sitio3.com", ]
     )
 
-    rows = db_instance.select_records(table="Sites")
+    rows = db_instance.select_records(table="sites")
     assert rows is not None
     assert len(rows) == 3
 
 
 def test_select_specific_columns(db_instance):
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.sitio1.com", ]
     )
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio2", "secret", "www.sitio2.com", ]
     )
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio3", "www.sitio3.com", ]
     )
-    rows = db_instance.select_records(table="Sites", columns=["name", "site_id"])
+    rows = db_instance.select_records(table="sites", columns=["name", "site_id"])
 
     assert rows is not None
     assert len(rows) == 3
@@ -81,22 +81,22 @@ def test_select_specific_columns(db_instance):
 
 def test_select_with_equal_where_clause(db_instance):
     r1 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.sitio1.com", ]
     )
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio2", "secret", "www.sitio2.com", ]
     )
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio3", "www.sitio3.com", ]
     )
     rows = db_instance.select_records(
-        table="Sites", where_columns=["site_id"], where_operators=["="], where_values=[r1["site_id"]]
+        table="sites", where_columns=["site_id"], where_operators=["="], where_values=[r1["site_id"]]
     )
     assert len(rows) == 1
     assert rows[0]["site_id"] == r1["site_id"]
@@ -104,24 +104,24 @@ def test_select_with_equal_where_clause(db_instance):
 
 def test_update_records(db_instance):
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio1", "www.sitio1.com", ]
     )
     r2=db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio2", "www.sitio2.com", ]
     )
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio3", "www.sitio3.com", ]
     )
 
     # Update record
     r2_updated = db_instance.update_records(
-        table="Sites",
+        table="sites",
         columns=["name"],
         values=["sitio2_nuevo_nombre"],
         where_columns=["site_id"],
@@ -133,12 +133,12 @@ def test_update_records(db_instance):
 
 def test_insert_update_select_record(db_instance):
     inserted_record = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio_A", "www.sitio-a.com"]
     )
     updated_record = db_instance.update_records(
-        table="Sites",
+        table="sites",
         columns=["base_url"],
         values=["www.newsite-a.com"],
         where_columns=["site_id"],
@@ -148,7 +148,7 @@ def test_insert_update_select_record(db_instance):
     assert len(updated_record) == 1
 
     selected_record = db_instance.select_records(
-        table="Sites",
+        table="sites",
         where_columns=["site_id"],
         where_operators=["="],
         where_values=[updated_record[0]["site_id"]]
@@ -160,35 +160,35 @@ def test_insert_update_select_record(db_instance):
 
 def test_delete_records(db_instance):
     r1 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.sitio1.com", ]
     )
     r2 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio2", "secret", "www.sitio2.com", ]
     )
     r3 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio3", "www.sitio3.com", ]
     )
 
     all_records_initial = db_instance.select_records(
-        table="Sites",
+        table="sites",
     )
 
     # Delete operations
     r_deleted = db_instance.delete_records(
-        table="Sites",
+        table="sites",
         where_columns=["site_id"],
         where_operators=[">"],
         where_values=[r1["site_id"]]   # Delete 2 records inserted after r1
     )
 
     all_records_final = db_instance.select_records(
-        table="Sites"
+        table="sites"
     )
 
     # Check 2 records deleted
@@ -198,43 +198,43 @@ def test_delete_records(db_instance):
 
 def test_safe_deleted_without_where(db_instance):
     r1 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.sitio1.com", ]
     )
     r2 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio2", "secret", "www.sitio2.com", ]
     )
     r3 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio3", "www.sitio3.com", ]
     )
 
     with pytest.raises(ValueError):
-        db_instance.delete_records(table="Sites")
+        db_instance.delete_records(table="sites")
 
 def test_deletes_on_nothing_satisfies_where_condition(db_instance):
     r1 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.sitio1.com", ]
     )
     r2 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio2", "secret", "www.sitio2.com", ]
     )
     r3 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio3", "www.sitio3.com", ]
     )
 
     records_deleted = db_instance.delete_records(
-        table="Sites",
+        table="sites",
         where_columns=["site_id"],
         where_operators=[">"],
         where_values=[r3["site_id"]]
@@ -242,59 +242,59 @@ def test_deletes_on_nothing_satisfies_where_condition(db_instance):
     assert len(records_deleted) == 0
 
 def test_select_primary_key(db_instance):
-    pkey = db_instance.get_primary_key_column(table="Sites")
+    pkey = db_instance.get_primary_key_column(table="sites")
     assert pkey == "site_id"
 
 def test_select_record_by_id(db_instance):
     r1 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.sitio1.com", ]
     )
     r2 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio2", "secret", "www.sitio2.com", ]
     )
     r3 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio3", "www.sitio3.com", ]
     )
 
-    record_selected = db_instance.select_record_by_id("Sites", r2["site_id"])
+    record_selected = db_instance.select_record_by_id("sites", r2["site_id"])
     assert isinstance(record_selected, dict)
     assert record_selected["site_id"] == r2["site_id"]
 
 def test_select_record_by_non_existing_id(db_instance):
     r1 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.sitio1.com", ]
     )
     r2 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio2", "secret", "www.sitio2.com", ]
     )
     r3 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio3", "www.sitio3.com", ]
     )
 
-    record_selected = db_instance.select_record_by_id("Sites", r3["site_id"] + 1)
-    assert record_selected is None
+    with pytest.raises(ValueError):
+        record_selected = db_instance.select_record_by_id("sites", r3["site_id"] + 1)
 
 def test_update_record_by_id_success(db_instance):
     rec = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio1", "www.s1.com"]
     )
 
     updated = db_instance.update_record_by_id(
-        table="Sites",
+        table="sites",
         id=rec["site_id"],
         columns=["name", "base_url"],
         new_values=["sitio1_updated", "www.new.com"]
@@ -305,7 +305,7 @@ def test_update_record_by_id_success(db_instance):
 
 def test_update_record_by_id_non_existing(db_instance):
     rec = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio1", "www.s1.com"]
     )
@@ -314,7 +314,7 @@ def test_update_record_by_id_non_existing(db_instance):
 
     with pytest.raises(ValueError):
         db_instance.update_record_by_id(
-            "Sites",
+            "sites",
             non_existing_id,
             columns=["name"],
             new_values=["new"]
@@ -322,13 +322,13 @@ def test_update_record_by_id_non_existing(db_instance):
 
 def test_update_record_by_id_ignores_internal_columns(db_instance):
     rec = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "_internal_col", "base_url"],
         values=["sitio1", "secret", "www.s1.com"]
     )
 
     updated = db_instance.update_record_by_id(
-        table="Sites",
+        table="sites",
         id=rec["site_id"],
         dict_new_values={
             "name": "nuevo",
@@ -343,13 +343,13 @@ def test_update_record_by_id_ignores_internal_columns(db_instance):
 
 def test_update_record_by_id_with_dict_new_values(db_instance):
     rec = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio1", "www.s1.com"]
     )
 
     updated = db_instance.update_record_by_id(
-        "Sites",
+        "sites",
         rec["site_id"],
         dict_new_values={"base_url": "www.modified.com"}
     )
@@ -359,14 +359,14 @@ def test_update_record_by_id_with_dict_new_values(db_instance):
 
 def test_update_record_by_id_columns_and_values_mismatch(db_instance):
     rec = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio1", "www.s1.com"]
     )
 
     with pytest.raises(ValueError):
         db_instance.update_record_by_id(
-            "Sites",
+            "sites",
             rec["site_id"],
             columns=["name", "base_url"],
             new_values=["solo_un_valor"]
@@ -374,19 +374,19 @@ def test_update_record_by_id_columns_and_values_mismatch(db_instance):
 
 def test_select_unique_record_found(db_instance):
     r1 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio1", "www.sitio1.com"]
     )
     r2 = db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio2", "www.sitio2.com"]
     )
 
     # Unique selection
     rec = db_instance.select_unique_record(
-        "Sites",
+        "sites",
         name="sitio1",
         base_url="www.sitio1.com",
     )
@@ -398,14 +398,14 @@ def test_select_unique_record_found(db_instance):
 def test_select_unique_record_none(db_instance):
     # Insert data
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio1", "www.sitio1.com"]
     )
 
     # Select non-existing combination
     rec = db_instance.select_unique_record(
-        "Sites",
+        "sites",
         name="no-existe",
         base_url="inexistente.com"
     )
@@ -415,12 +415,12 @@ def test_select_unique_record_none(db_instance):
 def test_select_unique_record_multiple_matches(db_instance):
     # Insert duplicates
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio_dupe", "www.dupe.com"]
     )
     db_instance.insert_record(
-        table="Sites",
+        table="sites",
         columns=["name", "base_url"],
         values=["sitio_dupe", "www.dupe.com"]
     )
@@ -428,7 +428,7 @@ def test_select_unique_record_multiple_matches(db_instance):
     # Should raise ValueError
     with pytest.raises(ValueError):
         db_instance.select_unique_record(
-            "Sites",
+            "sites",
             name="sitio_dupe",
             base_url="www.dupe.com"
         )
@@ -436,4 +436,4 @@ def test_select_unique_record_multiple_matches(db_instance):
 def test_select_unique_record_no_conditions(db_instance):
     # Verify ValueError raised on no conditions
     with pytest.raises(ValueError):
-        db_instance.select_unique_record("Sites")
+        db_instance.select_unique_record("sites")

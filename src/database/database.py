@@ -386,7 +386,7 @@ class Database:
             cursor.execute(query, (id,))
             row = cursor.fetchone()
             if not row:
-                return None
+                raise ValueError(f"Record with primary key {id} does not exist in table {table}")
 
             col_names = [desc[0] for desc in cursor.description]
             return dict(zip(col_names, row))
