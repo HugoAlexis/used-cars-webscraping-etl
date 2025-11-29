@@ -1,9 +1,5 @@
 from models_for_test import Site
 import pytest
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 from src.orm.base import BaseORMModel
 
 
@@ -70,8 +66,6 @@ def test_dump_inserts_record():
     assert selected_record['name'] == 'site1'
     assert selected_record['base_url'] == 'http://example-site1.com'
 
-<<<<<<< Updated upstream
-=======
 
 def test_basemodel_dumped_to_db_property_changes_after_dump(db_instance):
     with Site._db_object.connection.cursor() as cursor:
@@ -146,7 +140,7 @@ def test_dump_force_true_forces_duplicate_records():
 
     Site._db_object.rollback()
 
->>>>>>> Stashed changes
+
 def test_dict_record_filters_private_fields():
     site = Site(name='site1', base_url='http://example-site1.com')
     site._internal = 'Secret'
@@ -157,13 +151,10 @@ def test_dict_record_filters_private_fields():
     assert '_internal' not in record
 
 def test_basemodel_from_id_in_database():
-<<<<<<< Updated upstream
-=======
     with Site._db_object.connection.cursor() as cursor:
         cursor.execute("DELETE FROM sites;")
     Site._db_object.connection.commit()
 
->>>>>>> Stashed changes
     site = Site(name='site1', base_url='http://example-site1.com')
     id=site.dump()
 

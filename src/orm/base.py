@@ -74,10 +74,7 @@ class BaseORMModel:
         Example:
             Site(name="Example", base_url="http://example.com")
         """
-<<<<<<< Updated upstream
-=======
         self._is_dumped = False
->>>>>>> Stashed changes
         for k, v in kwargs.items():
             if k in self.table_columns:
                 setattr(self, k, v)
@@ -162,7 +159,7 @@ class BaseORMModel:
         """
         return {col: getattr(self, col, None) for col in self.table_columns}
 
-<<<<<<< Updated upstream
+
     def dump(self):
         """
         Insert the current object into the database table associated with the model.
@@ -187,7 +184,8 @@ class BaseORMModel:
         Example:
             site = Site(name="A", base_url="http://a.com")
             pk = site.dump()   # → ["generated_id"]
-=======
+    """
+
     @property
     def is_dumped(self):
         """
@@ -283,32 +281,25 @@ class BaseORMModel:
                 # Force duplicate insertion
                 pk3 = site.dump(force=True)
                 # → ["new_generated_id"]
->>>>>>> Stashed changes
         """
         dict_record = {col: val for col, val in self.dict_record.items()
                        if col in self.table_columns and not col in self.table_id}
 
-<<<<<<< Updated upstream
-=======
-        # Evitar insertar duplicados, salvo que force=True
+        # Avoid duplicates, unless force=True
         if not force and self.record_exists:
             record = self.db().select_unique_record(table=self.table_name, **dict_record)
 
-            # Retorna la PK del registro ya existente
+            # Returns PK of existing record
             return [record[key] for key in self.table_id]
 
->>>>>>> Stashed changes
         record = self.db().insert_record(
             table=self.table_name,
             columns=list(dict_record.keys()),
             values=list(dict_record.values()),
         )
 
-<<<<<<< Updated upstream
-=======
         self._is_dumped = True
 
->>>>>>> Stashed changes
         record_id = []
         for col_id in self.table_id:
             record_id.append(record[col_id])
@@ -317,30 +308,6 @@ class BaseORMModel:
     @classmethod
     def from_id_in_database(cls, record_id):
         """
-<<<<<<< Updated upstream
-        Retrieve a single record from the database using its primary key.
-
-        Parameters:
-            record_id (list):
-                A list of primary key values in the same order as defined by `table_id`.
-
-        Returns:
-            BaseModel:
-                An instance of the model populated with the retrieved database record.
-
-        Raises:
-            ValueError:
-                If the number of key values does not match `table_id`, or if the record
-                does not exist in the database.
-
-            NotImplementedError:
-                If the model uses a composite primary key (more than one column).
-                Extended support is required for future expansion.
-
-        Database requirements:
-            The database object must implement:
-                select_record_by_id(table: str, id: Any) -> dict|None
-=======
         Retrieves a database record by its primary key and returns a model instance
         representing that record.
 
@@ -361,7 +328,6 @@ class BaseORMModel:
             - The instance returned by this method will not trigger new INSERT
               operations if `dump()` is called, unless its data is modified and
               an explicit UPDATE is requested.
->>>>>>> Stashed changes
 
         Example:
             site = Site.from_id_in_database([1])
@@ -374,16 +340,12 @@ class BaseORMModel:
             raise NotImplementedError
 
         record = cls.db().select_record_by_id(table=cls.table_name, id=record_id[0])
-<<<<<<< Updated upstream
-        print(record)
-        if record:
-            return cls(**record)
-=======
+
         if record:
             record_instance = cls(**record)
             record_instance._is_dumped = True
             return record_instance
->>>>>>> Stashed changes
+
         else:
             raise ValueError(f"Id {record_id} does not correspond to any record in the database.")
 
