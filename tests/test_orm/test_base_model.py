@@ -1,6 +1,9 @@
 from models_for_test import Site
 import pytest
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 from src.orm.base import BaseORMModel
 
 
@@ -67,6 +70,83 @@ def test_dump_inserts_record():
     assert selected_record['name'] == 'site1'
     assert selected_record['base_url'] == 'http://example-site1.com'
 
+<<<<<<< Updated upstream
+=======
+
+def test_basemodel_dumped_to_db_property_changes_after_dump(db_instance):
+    with Site._db_object.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM sites;")
+    Site._db_object.connection.commit()
+
+    site = Site(name='site1', base_url='http://example-site1.com')
+    assert site.is_dumped == False
+    site.dump()
+    assert site.is_dumped == True
+
+
+def test_record_exists_detects_existing_record(db_instance):
+    with Site._db_object.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM sites;")
+    Site._db_object.connection.commit()
+
+    site1 = Site(name='site1', base_url='http://example-site1.com')
+    site2 = Site(name='site2', base_url='http://example-site2.com')
+    site2_duplicated = Site(name='site2', base_url='http://example-site2.com')
+
+    assert site1.record_exists == False
+    assert site2.record_exists == False
+
+    site2.dump()
+    assert site2.record_exists == True
+    assert site2_duplicated.record_exists == True
+    assert site1.record_exists == False
+
+
+def test_from_id_in_database_marks_instance_as_dumped(db_instance):
+    with Site._db_object.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM sites;")
+    Site._db_object.connection.commit()
+
+    site1 = Site(name='site1', base_url='http://example-site1.com')
+    pk1 = site1.dump()
+    site1_from_db = Site.from_id_in_database(pk1)
+
+    assert site1.is_dumped == True
+    assert site1_from_db.is_dumped == True
+
+
+def test_dump_avoids_duplicate_records():
+    with Site._db_object.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM sites;")
+    Site._db_object.connection.commit()
+
+    site1 = Site(name='site1', base_url='http://example-site1.com')
+    site1_duplicated = Site(name='site1', base_url='http://example-site1.com')
+
+    pk1 = site1.dump()
+    pk2 = site1_duplicated.dump()
+    assert pk1 == pk2
+
+    all_sites = Site.all()
+    assert len(all_sites) == 1
+
+def test_dump_force_true_forces_duplicate_records():
+    with Site._db_object.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM sites;")
+    Site._db_object.connection.commit()
+
+    site1 = Site(name='site1', base_url='http://example-site1.com')
+    site2 = Site(name='site1', base_url='http://example-site1.com')
+
+    pk1 = site1.dump()
+    pk2 = site2.dump(force=True)
+
+    all_sites = Site.all()
+    assert len(all_sites) == 2
+
+    Site._db_object.rollback()
+
+>>>>>>> Stashed changes
 def test_dict_record_filters_private_fields():
     site = Site(name='site1', base_url='http://example-site1.com')
     site._internal = 'Secret'
@@ -77,6 +157,13 @@ def test_dict_record_filters_private_fields():
     assert '_internal' not in record
 
 def test_basemodel_from_id_in_database():
+<<<<<<< Updated upstream
+=======
+    with Site._db_object.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM sites;")
+    Site._db_object.connection.commit()
+
+>>>>>>> Stashed changes
     site = Site(name='site1', base_url='http://example-site1.com')
     id=site.dump()
 

@@ -74,6 +74,10 @@ class BaseORMModel:
         Example:
             Site(name="Example", base_url="http://example.com")
         """
+<<<<<<< Updated upstream
+=======
+        self._is_dumped = False
+>>>>>>> Stashed changes
         for k, v in kwargs.items():
             if k in self.table_columns:
                 setattr(self, k, v)
@@ -158,6 +162,7 @@ class BaseORMModel:
         """
         return {col: getattr(self, col, None) for col in self.table_columns}
 
+<<<<<<< Updated upstream
     def dump(self):
         """
         Insert the current object into the database table associated with the model.
@@ -182,16 +187,128 @@ class BaseORMModel:
         Example:
             site = Site(name="A", base_url="http://a.com")
             pk = site.dump()   # → ["generated_id"]
+=======
+    @property
+    def is_dumped(self):
+        """
+        Indicates whether this instance has already been persisted to the database.
+
+        Returns:
+            bool:
+                True if the model was previously inserted into the database through
+                an ORM operation (e.g., `dump()`), False otherwise.
+
+        Notes:
+            - This flag is maintained internally by the ORM and should not be
+              modified manually.
+            - A value of True does not guarantee that a corresponding record still
+              exists in the database (e.g., it may have been deleted externally).
+            - This property is intended to prevent redundant insertions of the same
+              in-memory object.
+        """
+        return self._is_dumped
+
+    @property
+    def record_exists(self):
+        """
+            Checks whether a record with the same attribute values already exists
+            in the database, excluding primary key fields.
+
+            The comparison is performed using the object's `dict_record` attribute,
+            filtered to remove the primary key columns defined in `table_id`. The
+            remaining fields are used to query the database through
+            `select_unique_record()`.
+
+            Returns:
+                bool:
+                    True if a matching record exists in the database, False otherwise.
+
+            Notes:
+                - For instances created manually (e.g., `obj = MyModel(...)`), this
+                  attribute is initialized as False.
+                - Methods that load records directly from the database (such as
+                  `from_id_in_database`) must set this flag to True.
+                - This property is used internally to prevent unintended duplicate
+                  insertions into the table.
+            """
+        dict_record_without_pk = {col: val for col, val in self.dict_record.items() if col not in self.table_id}
+        record = self.db().select_unique_record(table=self.table_name, **dict_record_without_pk)
+
+        return bool(record)
+
+    def dump(self, force=False):
+        """
+            Persist the current model instance into the database table associated with this class.
+
+            This method inserts the record into the database unless a similar record
+            already exists (based on non–primary key fields). If a duplicate is detected,
+            the method returns the primary key of the existing record instead of inserting
+            a new one. This duplicate-avoidance behavior is skipped when `force=True`.
+
+            Parameters:
+                force (bool, optional):
+                    If False (default), the method prevents duplicate insertion when a
+                    record with the same non–primary key fields already exists in the
+                    table. When True, the method always inserts a new row, even if an
+                    identical record is already present.
+
+            Returns:
+                list:
+                    A list containing the primary key values corresponding to the model's
+                    `table_id`, in the same order in which the primary key columns are
+                    defined in the class.
+
+                    - If the record already exists in the database and `force=False`,
+                      the method returns the primary key of the existing record.
+                    - If a new row is inserted, the method returns the primary key of
+                      the newly created row.
+
+            Raises:
+                Any exceptions raised by the underlying database backend, including:
+                    - Integrity or constraint violations
+                    - Connection or operational errors
+                    - Missing or unexpected schema fields
+
+            Example:
+                site = Site(name="Example", base_url="http://example.com")
+
+                # Insert new record
+                pk1 = site.dump()
+                # → ["generated_id"]
+
+                # Attempt duplicate insert (but duplicate prevented)
+                pk2 = site.dump()
+                # → ["generated_id"]   # same PK as pk1
+
+                # Force duplicate insertion
+                pk3 = site.dump(force=True)
+                # → ["new_generated_id"]
+>>>>>>> Stashed changes
         """
         dict_record = {col: val for col, val in self.dict_record.items()
                        if col in self.table_columns and not col in self.table_id}
 
+<<<<<<< Updated upstream
+=======
+        # Evitar insertar duplicados, salvo que force=True
+        if not force and self.record_exists:
+            record = self.db().select_unique_record(table=self.table_name, **dict_record)
+
+            # Retorna la PK del registro ya existente
+            return [record[key] for key in self.table_id]
+
+>>>>>>> Stashed changes
         record = self.db().insert_record(
             table=self.table_name,
             columns=list(dict_record.keys()),
             values=list(dict_record.values()),
         )
 
+<<<<<<< Updated upstream
+=======
+        self._is_dumped = True
+
+>>>>>>> Stashed changes
         record_id = []
         for col_id in self.table_id:
             record_id.append(record[col_id])
@@ -200,6 +317,7 @@ class BaseORMModel:
     @classmethod
     def from_id_in_database(cls, record_id):
         """
+<<<<<<< Updated upstream
         Retrieve a single record from the database using its primary key.
 
         Parameters:
@@ -222,6 +340,28 @@ class BaseORMModel:
         Database requirements:
             The database object must implement:
                 select_record_by_id(table: str, id: Any) -> dict|None
+=======
+        Retrieves a database record by its primary key and returns a model instance
+        representing that record.
+
+        Parameters:
+            *record_id:
+                Primary key value(s) corresponding to this model's `table_id`
+                definition.
+
+        Returns:
+            BaseModel or None:
+                An instance populated with the record data if found.
+                The returned instance has its internal `_is_dumped` flag set to True.
+                Returns None if no record with the given ID exists.
+
+        Notes:
+            - This method should be used when an object must represent an existing
+              database row.
+            - The instance returned by this method will not trigger new INSERT
+              operations if `dump()` is called, unless its data is modified and
+              an explicit UPDATE is requested.
+>>>>>>> Stashed changes
 
         Example:
             site = Site.from_id_in_database([1])
@@ -234,9 +374,16 @@ class BaseORMModel:
             raise NotImplementedError
 
         record = cls.db().select_record_by_id(table=cls.table_name, id=record_id[0])
+<<<<<<< Updated upstream
         print(record)
         if record:
             return cls(**record)
+=======
+        if record:
+            record_instance = cls(**record)
+            record_instance._is_dumped = True
+            return record_instance
+>>>>>>> Stashed changes
         else:
             raise ValueError(f"Id {record_id} does not correspond to any record in the database.")
 
