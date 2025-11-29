@@ -1,8 +1,8 @@
-from src.orm.base import  BaseModel
+from src.orm.base import  BaseORMModel
 from src.database.database import  Database
 import os
 
-class Site(BaseModel):
+class Site(BaseORMModel):
     table_name = 'sites'
     table_id = ['site_id']
     table_columns = ['site_id', 'name', 'base_url']

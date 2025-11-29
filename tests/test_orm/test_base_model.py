@@ -1,7 +1,7 @@
 from models_for_test import Site
 import pytest
 
-from src.orm.base import BaseModel
+from src.orm.base import BaseORMModel
 
 
 def test_init_raises_valueerror_for_invalid_columns():
@@ -10,40 +10,40 @@ def test_init_raises_valueerror_for_invalid_columns():
 
 def test_basemodel_subclass_no_defines_table_columns():
     with pytest.raises(TypeError):
-        class User(BaseModel):
+        class User(BaseORMModel):
             table_name = 'Users'
             table_id = ["user_id"]
 
 def test_table_columns_not_list():
     with pytest.raises(TypeError):
-        class User(BaseModel):
+        class User(BaseORMModel):
             table_name = 'user_id,name'
             table_id = ["user_id"]
             table_name="Users"
 
 def test_table_columns_values_invalid_type():
     with pytest.raises(TypeError):
-        class User(BaseModel):
+        class User(BaseORMModel):
             table_name = 'Users'
             table_columns = ['user_id', 'name', 123]
             table_id = ["user_id"]
 
 def test_table_id_not_list_or_tuple():
     with pytest.raises(TypeError):
-        class User(BaseModel):
+        class User(BaseORMModel):
             table_name = 'Users'
             table_columns = ['user_id', 'name']
             table_id = 'user_id'
 
 def test_table_id_not_in_table_columns():
     with pytest.raises(ValueError):
-        class User(BaseModel):
+        class User(BaseORMModel):
             table_name = 'Users'
             table_columns = ['name', 'age']
             table_id = ['user_id']
 
 def test_valid_subclass():
-    class User(BaseModel):
+    class User(BaseORMModel):
         table_name = 'Users'
         table_columns = ['user_id', 'name', 'age']
         table_id = ['user_id']
