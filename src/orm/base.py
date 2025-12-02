@@ -1,4 +1,7 @@
+from datetime import datetime
 from ..database.database import  Database
+now = datetime.now
+
 
 class BaseORMModel:
     """
@@ -25,9 +28,13 @@ class BaseORMModel:
         - from_parser(): Create an ORM instance from a parser object.
     """
 
+    # Mandatory class attributes (must be defined in all subclasses)
     table_name = ""
     table_columns = []
     table_id = []
+
+    # General class attributes
+    ignored_columns_in_dict_record = ['updated_at', 'created_at']        # Columns ignored in
     _db_object = None          # Use only for testing
 
     def __init_subclass__(cls):
@@ -75,6 +82,9 @@ class BaseORMModel:
             Site(name="Example", base_url="http://example.com")
         """
         self._is_dumped = False
+        if 'created_at' in self.table_columns:
+            created_at = kwargs.pop('created_at', now())
+            self.created_at = created_at
         for k, v in kwargs.items():
             if k in self.table_columns:
                 setattr(self, k, v)
@@ -157,34 +167,9 @@ class BaseORMModel:
             site.dict_record
             # → {"name": "A", "base_url": "http://a.com"}
         """
-        return {col: getattr(self, col, None) for col in self.table_columns}
+        columns = [col for col in self.table_columns if not col in self.ignored_columns_in_dict_record]
+        return {col: getattr(self, col, None) for col in columns}
 
-
-    def dump(self):
-        """
-        Insert the current object into the database table associated with the model.
-
-        Returns:
-            list:
-                A list containing the primary key values corresponding to `table_id`,
-                in the same order as defined in the class.
-
-        Behavior:
-            - Converts the model's public attributes (`dict_record`) to column/value lists.
-            - Calls the database method:
-                insert_record(table, columns, values) -> dict
-            - Expects the returned dict to contain the values for all primary key columns.
-
-        Raises:
-            Various exceptions may propagate from the database backend, such as:
-                - integrity errors
-                - connection issues
-                - schema mismatches
-
-        Example:
-            site = Site(name="A", base_url="http://a.com")
-            pk = site.dump()   # → ["generated_id"]
-    """
 
     @property
     def is_dumped(self):
@@ -288,21 +273,30 @@ class BaseORMModel:
         # Avoid duplicates, unless force=True
         if not force and self.record_exists:
             record = self.db().select_unique_record(table=self.table_name, **dict_record)
-
             # Returns PK of existing record
             return [record[key] for key in self.table_id]
 
+        # Define columns and values to insert record
+        columns = list(dict_record.keys())
+        values = list(dict_record.values())
+        if 'created_at' in self.table_columns:
+            columns.append('created_at')
+            values.append(getattr(self, 'created_at', None))
+        print(columns, values)
+
+        # Inserts record
         record = self.db().insert_record(
             table=self.table_name,
-            columns=list(dict_record.keys()),
-            values=list(dict_record.values()),
+            columns=columns,
+            values=values,
         )
-
         self._is_dumped = True
 
         record_id = []
         for col_id in self.table_id:
+            print("Assigning PK")
             record_id.append(record[col_id])
+            setattr(self, col_id, record[col_id])
         return record_id
 
     @classmethod

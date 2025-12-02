@@ -1,11 +1,11 @@
-from models_for_test import Site
+from models_for_test import SiteTest
 import pytest
 from src.orm.base import BaseORMModel
 
 
 def test_init_raises_valueerror_for_invalid_columns():
     with pytest.raises(ValueError):
-        site = Site(name='site1', base_url='http://example-site1.com', invalid_col="invalid")
+        site = SiteTest(name='site1', base_url='http://example-site1.com', invalid_col="invalid")
 
 def test_basemodel_subclass_no_defines_table_columns():
     with pytest.raises(TypeError):
@@ -49,12 +49,17 @@ def test_valid_subclass():
 
 
 def test_basemodel_dict_record():
-    site = Site(name='site1', base_url='http://example-site1.com')
+    site = SiteTest(name='site1', base_url='http://example-site1.com')
     assert 'name' in site.dict_record
     assert 'base_url' in site.dict_record
 
+def test_basemodel_dict_record_ignores_columns():
+    site = SiteTest(name='site1', base_url='http://example-site1.com')
+    assert 'update_at' not in site.dict_record
+    assert 'created_at' not in site.dict_record
+
 def test_dump_inserts_record():
-    site = Site(name='site1', base_url='http://example-site1.com')
+    site = SiteTest(name='site1', base_url='http://example-site1.com')
     pk = site.dump()
 
     assert isinstance(pk, list)
@@ -67,25 +72,46 @@ def test_dump_inserts_record():
     assert selected_record['base_url'] == 'http://example-site1.com'
 
 
-def test_basemodel_dumped_to_db_property_changes_after_dump(db_instance):
-    with Site._db_object.connection.cursor() as cursor:
+def test_dump_assign_pk():
+    with SiteTest._db_object.connection.cursor() as cursor:
         cursor.execute("DELETE FROM sites;")
-    Site._db_object.connection.commit()
+    SiteTest._db_object.connection.commit()
+    site = SiteTest(name='site1', base_url='http://example-site1.com')
+    pk = site.dump()
 
-    site = Site(name='site1', base_url='http://example-site1.com')
+    assert site.site_id == pk[0]
+
+
+def test_dump_method_includes_created_at_value():
+    with SiteTest._db_object.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM sites;")
+    SiteTest._db_object.connection.commit()
+
+    site = SiteTest(name='site1', base_url='http://example-site1.com')
+    pk = site.dump()
+    site_from_db = site.from_id_in_database(pk)
+    assert site.created_at == site_from_db.created_at
+
+
+def test_basemodel_dumped_to_db_property_changes_after_dump(db_instance):
+    with SiteTest._db_object.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM sites;")
+    SiteTest._db_object.connection.commit()
+
+    site = SiteTest(name='site1', base_url='http://example-site1.com')
     assert site.is_dumped == False
     site.dump()
     assert site.is_dumped == True
 
 
 def test_record_exists_detects_existing_record(db_instance):
-    with Site._db_object.connection.cursor() as cursor:
+    with SiteTest._db_object.connection.cursor() as cursor:
         cursor.execute("DELETE FROM sites;")
-    Site._db_object.connection.commit()
+    SiteTest._db_object.connection.commit()
 
-    site1 = Site(name='site1', base_url='http://example-site1.com')
-    site2 = Site(name='site2', base_url='http://example-site2.com')
-    site2_duplicated = Site(name='site2', base_url='http://example-site2.com')
+    site1 = SiteTest(name='site1', base_url='http://example-site1.com')
+    site2 = SiteTest(name='site2', base_url='http://example-site2.com')
+    site2_duplicated = SiteTest(name='site2', base_url='http://example-site2.com')
 
     assert site1.record_exists == False
     assert site2.record_exists == False
@@ -96,53 +122,57 @@ def test_record_exists_detects_existing_record(db_instance):
     assert site1.record_exists == False
 
 
-def test_from_id_in_database_marks_instance_as_dumped(db_instance):
-    with Site._db_object.connection.cursor() as cursor:
-        cursor.execute("DELETE FROM sites;")
-    Site._db_object.connection.commit()
+def test_record_exists_ignores_update_and_created_at_columns(db_instance):
+    ...
 
-    site1 = Site(name='site1', base_url='http://example-site1.com')
+
+def test_from_id_in_database_marks_instance_as_dumped(db_instance):
+    with SiteTest._db_object.connection.cursor() as cursor:
+        cursor.execute("DELETE FROM sites;")
+    SiteTest._db_object.connection.commit()
+
+    site1 = SiteTest(name='site1', base_url='http://example-site1.com')
     pk1 = site1.dump()
-    site1_from_db = Site.from_id_in_database(pk1)
+    site1_from_db = SiteTest.from_id_in_database(pk1)
 
     assert site1.is_dumped == True
     assert site1_from_db.is_dumped == True
 
 
 def test_dump_avoids_duplicate_records():
-    with Site._db_object.connection.cursor() as cursor:
+    with SiteTest._db_object.connection.cursor() as cursor:
         cursor.execute("DELETE FROM sites;")
-    Site._db_object.connection.commit()
+    SiteTest._db_object.connection.commit()
 
-    site1 = Site(name='site1', base_url='http://example-site1.com')
-    site1_duplicated = Site(name='site1', base_url='http://example-site1.com')
+    site1 = SiteTest(name='site1', base_url='http://example-site1.com')
+    site1_duplicated = SiteTest(name='site1', base_url='http://example-site1.com')
 
     pk1 = site1.dump()
     pk2 = site1_duplicated.dump()
     assert pk1 == pk2
 
-    all_sites = Site.all()
+    all_sites = SiteTest.all()
     assert len(all_sites) == 1
 
 def test_dump_force_true_forces_duplicate_records():
-    with Site._db_object.connection.cursor() as cursor:
+    with SiteTest._db_object.connection.cursor() as cursor:
         cursor.execute("DELETE FROM sites;")
-    Site._db_object.connection.commit()
+    SiteTest._db_object.connection.commit()
 
-    site1 = Site(name='site1', base_url='http://example-site1.com')
-    site2 = Site(name='site1', base_url='http://example-site1.com')
+    site1 = SiteTest(name='site1', base_url='http://example-site1.com')
+    site2 = SiteTest(name='site1', base_url='http://example-site1.com')
 
     pk1 = site1.dump()
     pk2 = site2.dump(force=True)
 
-    all_sites = Site.all()
+    all_sites = SiteTest.all()
     assert len(all_sites) == 2
 
-    Site._db_object.rollback()
+    SiteTest._db_object.rollback()
 
 
 def test_dict_record_filters_private_fields():
-    site = Site(name='site1', base_url='http://example-site1.com')
+    site = SiteTest(name='site1', base_url='http://example-site1.com')
     site._internal = 'Secret'
 
     record = site.dict_record
@@ -151,15 +181,15 @@ def test_dict_record_filters_private_fields():
     assert '_internal' not in record
 
 def test_basemodel_from_id_in_database():
-    with Site._db_object.connection.cursor() as cursor:
+    with SiteTest._db_object.connection.cursor() as cursor:
         cursor.execute("DELETE FROM sites;")
-    Site._db_object.connection.commit()
+    SiteTest._db_object.connection.commit()
 
-    site = Site(name='site1', base_url='http://example-site1.com')
+    site = SiteTest(name='site1', base_url='http://example-site1.com')
     id=site.dump()
 
     site_from_db = site.from_id_in_database(id)
-    assert isinstance(site_from_db, Site)
+    assert isinstance(site_from_db, SiteTest)
 
     assert site_from_db.name == 'site1'
     assert site_from_db.base_url == 'http://example-site1.com'
@@ -174,8 +204,8 @@ def test_basemodel_instance_from_parser_instance():
             self.other_attribute = 'other'
 
     site_parser = SiteParser()
-    site = Site.from_parser(site_parser)
-    assert isinstance(site, Site)
+    site = SiteTest.from_parser(site_parser)
+    assert isinstance(site, SiteTest)
     assert site.name == 'siteB'
     assert site.base_url == 'http://example-siteB.com'
     assert getattr(site, '_internal', None) is None
