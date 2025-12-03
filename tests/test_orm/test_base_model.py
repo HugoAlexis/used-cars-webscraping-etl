@@ -1,7 +1,8 @@
 from models_for_test import SiteTest
 import pytest
 from src.orm.base import BaseORMModel
-
+import datetime
+from datetime import datetime, timedelta
 
 def test_pk_property_returns_none_on_not_dumped_instances():
     site = SiteTest(name='site1', base_url='http://example-site1.com')
@@ -149,6 +150,21 @@ def test_update_method_updates_specific_columns_for_record_in_database():
     assert site1_from_db.name == "site1-new-name"
     assert site1_from_db.base_url == "http://example-site1.com"
 
+
+def test_update_method_updates_updated_at_columns_for_record_in_database():
+    created_at = datetime.now()
+    created_at = created_at - timedelta(days=1)
+
+    site1 = SiteTest(name='site1', base_url='http://example-site1.com', created_at=created_at)
+    pk = site1.dump()
+    assert site1.updated_at is None
+
+    site1.update()
+    site1_updated_from_db = SiteTest.from_id_in_database(pk)
+
+    assert site1.updated_at == site1_updated_from_db.updated_at
+    assert site1_updated_from_db.updated_at is not None
+    assert isinstance(site1_updated_from_db.created_at, datetime)
 
 
 def test_record_exists_detects_existing_record(db_instance):

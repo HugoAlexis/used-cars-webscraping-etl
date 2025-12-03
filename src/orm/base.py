@@ -85,6 +85,9 @@ class BaseORMModel:
         if 'created_at' in self.table_columns:
             created_at = kwargs.pop('created_at', now())
             self.created_at = created_at
+        if 'updated_at' in self.table_columns:
+            updated_at = kwargs.pop('updated_at', None)
+            self.updated_at = updated_at
         for k, v in kwargs.items():
             if k in self.table_columns:
                 setattr(self, k, v)
@@ -307,7 +310,6 @@ class BaseORMModel:
         if 'created_at' in self.table_columns:
             columns.append('created_at')
             values.append(getattr(self, 'created_at', None))
-        print(columns, values)
 
         # Inserts record
         record = self.db().insert_record(
@@ -361,10 +363,19 @@ class BaseORMModel:
             raise ValueError(f"Invalid column value {columns}")
 
         update_dict = {col:val for col, val in zip(cols, values)}
+
+        # Add updated_at column if present in cls.table_columns
+        if 'updated_at' in self.table_columns:
+            updated_at = now()
+            update_dict['updated_at'] = updated_at
+
         # Update operation
-        print(update_dict)
-        print(self.pk)
-        self.db().update_record_by_id(table=self.table_name, id=self.pk[0], dict_new_values=update_dict)
+        try:
+            self.db().update_record_by_id(table=self.table_name, id=self.pk[0], dict_new_values=update_dict)
+            self.updated_at = updated_at
+        except Exception as e:
+            print("Error during updating record")
+            raise e
         return self.pk
 
 
