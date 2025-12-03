@@ -91,6 +91,21 @@ class BaseORMModel:
             else:
                 raise ValueError(f"Column {k} is not present in the model")
 
+
+    def __repr__(self):
+        repr_record = (
+                '-' * 30 + '\n' +
+                f'<<<  {self.__class__.__name__} record  >>>\n' +
+                f'Dumped: {self.is_dumped}\n\n' +
+                '\n'.join([f'|{"*" if col in self.table_id else "-"}  {col} = {value}' for col, value in self.dict_record.items()]) +
+                '\n' + '-' * 30 + '\n'
+        )
+        return repr_record
+
+    def __str__(self):
+        return self.__repr__()
+
+
     @classmethod
     def db(cls):
         """
@@ -219,6 +234,14 @@ class BaseORMModel:
 
         return bool(record)
 
+    @property
+    def pk(self):
+        """
+        Returns list of primary key values associated with the model.
+        """
+        pk_val = [getattr(self, col, None) for col in self.table_id]
+        return pk_val
+
     def dump(self, force=False):
         """
             Persist the current model instance into the database table associated with this class.
@@ -273,6 +296,8 @@ class BaseORMModel:
         # Avoid duplicates, unless force=True
         if not force and self.record_exists:
             record = self.db().select_unique_record(table=self.table_name, **dict_record)
+            for col_id in self.table_id:
+                setattr(self, col_id, record[col_id])
             # Returns PK of existing record
             return [record[key] for key in self.table_id]
 
@@ -294,10 +319,54 @@ class BaseORMModel:
 
         record_id = []
         for col_id in self.table_id:
-            print("Assigning PK")
             record_id.append(record[col_id])
             setattr(self, col_id, record[col_id])
         return record_id
+
+    def update(self, columns='*'):
+        """
+        Updates the current model instance with a new set of column values.
+        If columns="*", updates all columns for the record. Specific columns can be updated within the
+        record by passing a list of column names (strings) in param columns.
+        parameters:
+            * columns:
+                "*" or list of column names to update.
+        Returns:
+            * pk
+                Primary key value(s) corresponding to updated record instance.
+        Raises:
+            * ValueError for invalid column parameter.
+            * Any exceptions raised by the underlying database backend.
+        Example:
+            Site = Site(name="Example", base_url="http://site1.com")
+            site.dict_values -> {name: "Example", url: "http://example.com"}
+            site.base_url = "http://new-site1.com
+            site.update()
+            site.dict_values -> {name: "Example", url: "http://new-site1.com"}
+        """
+        # Create column, value pairs to update record
+        dict_record = {col: val for col, val in self.dict_record.items()
+                       if col in self.table_columns and not col in self.table_id}
+        if columns == '*':
+            cols = dict_record.keys()
+            values = list(dict_record.values())
+        elif isinstance(columns, list):
+            cols, values = [], []
+            for col in columns:
+                if not col in self.table_columns:
+                    raise ValueError(f"Invalid column name {col}")
+                cols.append(col)
+                values.append(self.dict_record[col])
+        else:
+            raise ValueError(f"Invalid column value {columns}")
+
+        update_dict = {col:val for col, val in zip(cols, values)}
+        # Update operation
+        print(update_dict)
+        print(self.pk)
+        self.db().update_record_by_id(table=self.table_name, id=self.pk[0], dict_new_values=update_dict)
+        return self.pk
+
 
     @classmethod
     def from_id_in_database(cls, record_id):

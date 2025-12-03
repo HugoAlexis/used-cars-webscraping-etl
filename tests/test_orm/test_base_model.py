@@ -3,6 +3,26 @@ import pytest
 from src.orm.base import BaseORMModel
 
 
+def test_pk_property_returns_none_on_not_dumped_instances():
+    site = SiteTest(name='site1', base_url='http://example-site1.com')
+    assert isinstance(site.pk, list)
+    assert len(site.pk) == 1
+    assert site.pk[0] is None
+
+
+def test_pk_property_returns_valid_pk_on_dumped_instances():
+    site1 = SiteTest(name='site1', base_url='http://example-site1.com')
+    site2 = SiteTest(name='site2', base_url='http://example-site2.com')
+    pk1 = site1.dump()
+    pk2 = site2.dump()
+
+    assert isinstance(site1.pk, list)
+    assert len(site1.pk) == 1
+
+    assert site1.pk[0] == pk1[0]
+    assert site2.pk[0] == pk2[0]
+
+
 def test_init_raises_valueerror_for_invalid_columns():
     with pytest.raises(ValueError):
         site = SiteTest(name='site1', base_url='http://example-site1.com', invalid_col="invalid")
@@ -102,6 +122,33 @@ def test_basemodel_dumped_to_db_property_changes_after_dump(db_instance):
     assert site.is_dumped == False
     site.dump()
     assert site.is_dumped == True
+
+def test_update_method_updates_record_in_database():
+    site1 = SiteTest(name='site1', base_url='http://example-site1.com')
+    pk = site1.dump()
+
+    site1_from_db = SiteTest.from_id_in_database(pk)
+    assert site1_from_db.name == "site1"
+
+    site1.name = "site1-new-name"
+    site1.base_url = "http://example-site1-new-url.com"
+    site1.update()
+    site1_updated_from_db = SiteTest.from_id_in_database(pk)
+    assert site1_updated_from_db.name == "site1-new-name"
+    assert site1_updated_from_db.base_url == "http://example-site1-new-url.com"
+
+
+def test_update_method_updates_specific_columns_for_record_in_database():
+    site1 = SiteTest(name='site1', base_url='http://example-site1.com')
+    pk = site1.dump()
+
+    site1.name = "site1-new-name"
+    site1.update()
+    site1_from_db = SiteTest.from_id_in_database(pk)
+    assert site1_from_db.pk == pk
+    assert site1_from_db.name == "site1-new-name"
+    assert site1_from_db.base_url == "http://example-site1.com"
+
 
 
 def test_record_exists_detects_existing_record(db_instance):
