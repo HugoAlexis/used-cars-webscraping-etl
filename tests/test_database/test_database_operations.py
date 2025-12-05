@@ -517,15 +517,16 @@ def test_select_unique_record_none(db_instance):
 
     assert rec is None
 
+
 def test_select_unique_record_multiple_matches(db_instance):
-    # Insert duplicates
+    # Insert duplicates into Sites_testing table (which accepts duplicate values)
     db_instance.insert_record(
-        table="sites",
+        table="sites_testing",
         columns=["name", "base_url"],
         values=["sitio_dupe", "www.dupe.com"]
     )
     db_instance.insert_record(
-        table="sites",
+        table="sites_testing",
         columns=["name", "base_url"],
         values=["sitio_dupe", "www.dupe.com"]
     )
@@ -533,7 +534,7 @@ def test_select_unique_record_multiple_matches(db_instance):
     # Should raise ValueError
     with pytest.raises(ValueError):
         db_instance.select_unique_record(
-            "sites",
+            "sites_testing",
             name="sitio_dupe",
             base_url="www.dupe.com"
         )
