@@ -1,5 +1,7 @@
+import os
 from datetime import datetime
 from ..database.database import  Database
+from psycopg2.errors import ConnectionFailure
 now = datetime.now
 
 
@@ -36,6 +38,7 @@ class BaseORMModel:
     # General class attributes
     ignored_columns_in_dict_record = ['updated_at', 'created_at']        # Columns ignored in
     _db_object = None          # Use only for testing
+    _dbname = None
 
     def __init_subclass__(cls):
         # Verify table_columns is defined
@@ -136,15 +139,14 @@ class BaseORMModel:
         # Production: attempt to instantiate the global Database singleton
         try:
             return Database(
-                dbname="xxxxx",
-                user='xxxxx',
-                password='',
-                host='xxxxx',
-                port='xxxxx',
+                dbname=cls._dbname,
+                user=os.getenv("DB_USERNAME"),
+                password=os.getenv("DB_PASSWORD"),
+                host=os.getenv("DB_HOST"),
+                port=os.getenv("DB_PORT"),
             )
         except Exception:
-            # Placeholder while development environment isn't configured yet
-            return "NotImplemented"
+            raise ConnectionFailure("Failure trying to connect to Database")
 
 
     @classmethod
