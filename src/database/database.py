@@ -362,7 +362,7 @@ class Database:
            Args:
                table (str):
                    Name of the table to query.
-               id (Any):
+               id (str) | list[str]:
                    Value of the primary key for the record to retrieve.
 
            Returns:
@@ -377,14 +377,28 @@ class Database:
         """
         id_col = self.get_primary_key_column(table)
 
-        query = sql.SQL("SELECT * FROM {table} WHERE {id_col} = %s").format(
-            table=sql.Identifier(table),
-            id_col=sql.Identifier(id_col)
-        )
+        # Verify length of PK equals id for composite PK
+        if isinstance(id_col, str):
+            query = sql.SQL("SELECT * FROM {table} WHERE {id_col} = %s").format(
+                table=sql.Identifier(table),
+                id_col=sql.Identifier(id_col)
+            )
+        elif isinstance(id, list) and len(id) == len(id_col) == 2:
+            query = sql.SQL("SELECT * FROM {table} WHERE {id1}=%s AND {id2}=%s").format(
+                table=sql.Identifier(table),
+                id1=sql.Identifier(id_col[0]),
+                id2=sql.Identifier(id_col[1])
+            )
+        else:
+            raise ValueError(f"Invalid argument for id_col: {id_col}. Must be either str or list.")
 
         with self.connection.cursor() as cursor:
-            cursor.execute(query, (id,))
+            cursor.execute(
+                query,
+                vars=id if isinstance(id, (list, tuple)) else [id,],
+            )
             row = cursor.fetchone()
+
             if not row:
                 raise ValueError(f"Record with primary key {id} does not exist in table {table}")
 
@@ -435,15 +449,28 @@ class Database:
         columns = list(dict_new_values.keys())
         new_values = list(dict_new_values.values())
 
+
         # Perform update
-        updated_rows = self.update_records(
-            table=table,
-            columns=columns,
-            values=new_values,
-            where_columns=[id_col],
-            where_operators=["="],
-            where_values=[id]
-        )
+        if isinstance(id_col, str):
+            updated_rows = self.update_records(
+                table=table,
+                columns=columns,
+                values=new_values,
+                where_columns=[id_col],
+                where_operators=["="],
+                where_values=[id]
+            )
+        elif isinstance(id_col, list):
+            updated_rows = self.update_records(
+                table=table,
+                columns=columns,
+                values=new_values,
+                where_columns=id_col,
+                where_operators=["="] * len(id_col),
+                where_values=id
+            )
+        else:
+            raise ValueError(f"Invalid argument for id_col: {id_col}. Must be either str or list.")
 
         # update_records returns list of dicts
         return updated_rows[0] if updated_rows else None

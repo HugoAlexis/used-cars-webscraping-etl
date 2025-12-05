@@ -1,6 +1,8 @@
 from src.database.database import Database
 import pytest
 
+from tests.conftest import db_instance
+
 
 def test_inset_record_site(db_instance):
     inserted_record = db_instance.insert_record(
@@ -8,10 +10,77 @@ def test_inset_record_site(db_instance):
         columns=["name", "base_url"],
         values=["sitio1", "www.sitio1.com"],
     )
-    print(inserted_record)
+
     assert "site_id" in inserted_record
     assert inserted_record["name"] == "sitio1"
     assert inserted_record["base_url"] == "www.sitio1.com"
+
+    record_from_db = db_instance.select_unique_record(
+        table="sites",
+        name="sitio1",
+        base_url="www.sitio1.com",
+    )
+    assert record_from_db is not None
+
+
+def test_insert_record_in_table_with_composite_key(db_instance):
+    rt1 = db_instance.insert_record(
+        table="table_1",
+        columns=["name_t1"],
+        values=["value1_t1"]
+    )
+    rt2 = db_instance.insert_record(
+        table="table_2",
+        columns=["name_t2"],
+        values=["value1_t2"]
+    )
+
+    rjoint = db_instance.insert_record(
+        table="joint_table1_table2",
+        columns=['t1_id', 't2_id'],
+        values=[rt1["t1_id"], rt2["t2_id"]]
+    )
+    assert "t1_id" in rjoint
+    assert "t2_id" in rjoint
+
+def test_update_record_by_id_with_composite_key(db_instance):
+    rt1 = db_instance.insert_record(
+        table="table_1",
+        columns=["name_t1"],
+        values=["value1_t1"]
+    )
+    rt2 = db_instance.insert_record(
+        table="table_2",
+        columns=["name_t2"],
+        values=["value1_t2"]
+    )
+
+    rjoint = db_instance.insert_record(
+        table="joint_table1_table2",
+        columns=['t1_id', 't2_id'],
+        values=[rt1["t1_id"], rt2["t2_id"]]
+    )
+
+    rt3 = db_instance.insert_record(
+        table="table_2",
+        columns=["name_t2"],
+        values=["value2_t2"]
+    )
+
+    db_instance.update_record_by_id(
+        table="joint_table1_table2",
+        columns=["t1_id", "t2_id"],
+        new_values=[rt1["t1_id"], rt3["t2_id"]],
+        id=[rt1["t1_id"], rt2["t2_id"]]
+    )
+
+    updated_rjoint = db_instance.select_record_by_id(
+        table="joint_table1_table2",
+        id=[rt1["t1_id"], rt3["t2_id"]]
+    )
+    assert updated_rjoint is not None
+
+
 
 def test_insert_record_ignores_underscore_columns(db_instance):
     inserted_record = db_instance.insert_record(
@@ -216,7 +285,7 @@ def test_safe_deleted_without_where(db_instance):
     with pytest.raises(ValueError):
         db_instance.delete_records(table="sites")
 
-def test_deletes_on_nothing_satisfies_where_condition(db_instance):
+def test_deletes_nothing_when_nothing_satisfies_where_condition(db_instance):
     r1 = db_instance.insert_record(
         table="sites",
         columns=["name", "_internal_col", "base_url"],
@@ -241,9 +310,18 @@ def test_deletes_on_nothing_satisfies_where_condition(db_instance):
     )
     assert len(records_deleted) == 0
 
-def test_select_primary_key(db_instance):
+
+def test_get_primary_key(db_instance):
     pkey = db_instance.get_primary_key_column(table="sites")
     assert pkey == "site_id"
+
+
+def test_get_primary_key_for_composite_pk(db_instance):
+    pkey = db_instance.get_primary_key_column(table="car_snapshots")
+    assert len(pkey) == 2
+    assert pkey[0] == 'scrape_id'
+    assert pkey[1] == 'car_id'
+
 
 def test_select_record_by_id(db_instance):
     r1 = db_instance.insert_record(
@@ -265,6 +343,33 @@ def test_select_record_by_id(db_instance):
     record_selected = db_instance.select_record_by_id("sites", r2["site_id"])
     assert isinstance(record_selected, dict)
     assert record_selected["site_id"] == r2["site_id"]
+
+#@pytest.mark.skip(reason="Not fixed")
+def test_select_record_by_id_with_composite_primary_key(db_instance):
+    rt1 = db_instance.insert_record(
+        table="table_1",
+        columns=["name_t1"],
+        values=["value1_t1"]
+    )
+    rt2 = db_instance.insert_record(
+        table="table_2",
+        columns=["name_t2"],
+        values=["value1_t2"]
+    )
+
+    rj = db_instance.insert_record(
+        table="joint_table1_table2",
+        columns=['t1_id', 't2_id'],
+        values=[rt1["t1_id"], rt2["t2_id"]]
+    )
+
+    rj_from_db = db_instance.select_record_by_id(
+        table="joint_table1_table2",
+        id=[rt1["t1_id"], rt2["t2_id"]]
+    )
+    assert rj["t1_id"] == rj_from_db["t1_id"]
+    assert rj["t2_id"] == rj_from_db["t2_id"]
+
 
 def test_select_record_by_non_existing_id(db_instance):
     r1 = db_instance.insert_record(
