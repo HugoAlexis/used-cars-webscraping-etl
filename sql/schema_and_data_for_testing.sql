@@ -1,3 +1,8 @@
+DROP TABLE IF EXISTS table_1;
+DROP TABLE IF EXISTS table_2;
+DROP TABLE IF EXISTS joint_table1_table2;
+DROP TABLE IF EXISTS sites_testing;
+
 -- For Testing Database ONLY
 CREATE TABLE table_1 (
 	t1_id SERIAL PRIMARY KEY,
