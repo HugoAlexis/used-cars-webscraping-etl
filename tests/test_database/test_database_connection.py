@@ -27,7 +27,7 @@ def test_database_non_singleton_behavior(db_params):
 
 def test_invalid_database_password(db_params):
     with pytest.raises(psycopg2.OperationalError):
-        Database(
+        db = Database(
             db_params["dbname"],
             db_params["user"],
             "incorrect_password",
@@ -35,10 +35,12 @@ def test_invalid_database_password(db_params):
             db_params["port"],
             _use_singleton=False,
         )
+        db._open_connection()
+
 
 def test_invalid_database_username(db_params):
     with pytest.raises(psycopg2.OperationalError):
-        Database(
+        db = Database(
             db_params["dbname"],
             "invalid_username",
             db_params["password"],
@@ -46,3 +48,4 @@ def test_invalid_database_username(db_params):
             db_params["port"],
             _use_singleton=False,
         )
+        db._open_connection()

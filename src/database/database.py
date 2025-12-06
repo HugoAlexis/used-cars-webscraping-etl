@@ -3,36 +3,40 @@ import traceback
 import psycopg2
 from psycopg2 import sql
 
+import psycopg2
+
+
 class Database:
     """
-    Singleton class that handles database connection and
-    functionality.
+    Singleton class that handles database connection and functionality.
     """
     _instance = None
-    def __new__(cls, *args, **kwargs):
-        """
-        Creates a new instance of the database class. If _use_singleton is True (the default),
-        the object is implemented as a Singleton.
-        :param args:
-        :param kwargs:
-        """
-        use_singleton = kwargs.pop("_use_singleton", True)
 
-        # Avoid singleton pattern (for testing)
+    def __new__(cls, *args, **kwargs):
+        use_singleton = kwargs.pop("_use_singleton", True)
+        print(kwargs)
+
+        # If not using singleton (for testing)
         if not use_singleton:
             instance = super().__new__(cls)
-            instance._init_connection(*args, **kwargs)
             instance.__initialized = False
+            instance._connection = None
+            instance._store_connection_params(*args, **kwargs)
             return instance
 
-        # Define singleton pattern
+        # Singleton mode
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls.__initialized = False
-            cls._instance._init_connection(*args, **kwargs)
+            cls._instance.__initialized = False
+            cls._instance._connection = None
+            cls._instance._store_connection_params(*args, **kwargs)
+
         return cls._instance
 
-    def _init_connection(self, dbname, user, password, host, port):
+    def _store_connection_params(self, dbname, user, password, host, port):
+        """
+        Store connection parameters for database connection. Do not connect yet.
+        """
         self._connection_kwargs = {
             "dbname": dbname,
             "user": user,
@@ -41,34 +45,35 @@ class Database:
             "port": port,
         }
 
-        self._connection = psycopg2.connect(
-            dbname=dbname,
-            user=user,
-            password=password,
-            host=host,
-            port=port,
-        )
+    def _open_connection(self):
+        """Open a new database connection using stored parameters."""
+        print("Oppening a connection...")
+        self._connection = psycopg2.connect(**self._connection_kwargs)
         self._connection.autocommit = False
 
     @classmethod
     def reset_instance(cls):
         """
-        Rest the singleton instance (useful for testing).
+        Reset the singleton instance (useful for testing).
         """
         if cls._instance is not None:
-            if hasattr(cls._instance, "_connection") and not cls._instance._connection.closed:
-                cls._instance.connection.close()
+            if (
+                hasattr(cls._instance, "_connection")
+                and cls._instance._connection
+                and cls._instance._connection.closed == 0
+            ):
+                cls._instance._connection.close()
             cls._instance = None
 
     @property
     def connection(self):
         """
-        Retorna una conexión activa. Si la conexión ha sido cerrada,
-        o nunca se ha creado, crea una nueva automáticamente.
+        Return an active connection. If closed or missing, open a new one.
         """
         if self._connection is None or self._connection.closed != 0:
-            self._init_connection(**self._connection_kwargs)
+            self._open_connection()
         return self._connection
+
 
     def commit(self):
             """
