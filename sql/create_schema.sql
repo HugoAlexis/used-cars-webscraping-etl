@@ -111,6 +111,7 @@ CREATE TABLE car_listings (
     city VARCHAR(120),
     odometer INTEGER,
     image_path TEXT,
+    report_path TEXT,
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW() NOT NULL,
 	CONSTRAINT unique_site_listing UNIQUE (site_id, listing_id),

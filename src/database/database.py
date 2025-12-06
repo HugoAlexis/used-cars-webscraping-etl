@@ -33,6 +33,14 @@ class Database:
         return cls._instance
 
     def _init_connection(self, dbname, user, password, host, port):
+        self._connection_kwargs = {
+            "dbname": dbname,
+            "user": user,
+            "password": password,
+            "host": host,
+            "port": port,
+        }
+
         self._connection = psycopg2.connect(
             dbname=dbname,
             user=user,
@@ -55,17 +63,19 @@ class Database:
     @property
     def connection(self):
         """
-        Returns the connection to the database.
-        :return: psycopg.connection
+        Retorna una conexión activa. Si la conexión ha sido cerrada,
+        o nunca se ha creado, crea una nueva automáticamente.
         """
+        if self._connection is None or self._connection.closed != 0:
+            self._init_connection(**self._connection_kwargs)
         return self._connection
 
     def commit(self):
-        """
-        Commits the current transaction to the database.
-        :return: None
-        """
-        self.connection.commit()
+            """
+            Commits the current transaction to the database.
+            :return: None
+            """
+            self.connection.commit()
 
     def rollback(self):
         """
