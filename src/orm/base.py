@@ -300,6 +300,7 @@ class BaseORMModel:
 
         # Avoid duplicates, unless force=True
         if not force and self.record_exists:
+            print("Already exists! Not dumping instance")
             record = self.db().select_unique_record(table=self.table_name, **dict_record)
             for col_id in self.table_id:
                 setattr(self, col_id, record[col_id])
@@ -313,6 +314,7 @@ class BaseORMModel:
             columns.append('created_at')
             values.append(getattr(self, 'created_at', None))
 
+        print(dict(zip(columns, values)))
         # Inserts record
         record = self.db().insert_record(
             table=self.table_name,
