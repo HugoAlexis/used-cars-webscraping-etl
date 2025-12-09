@@ -99,6 +99,7 @@ class BaseORMModel:
 
 
     def __repr__(self):
+        return ''
         repr_record = (
                 '-' * 30 + '\n' +
                 f'<<<  {self.__class__.__name__} record  >>>\n' +
@@ -314,7 +315,7 @@ class BaseORMModel:
             columns.append('created_at')
             values.append(getattr(self, 'created_at', None))
 
-        print(dict(zip(columns, values)))
+
         # Inserts record
         record = self.db().insert_record(
             table=self.table_name,
@@ -412,20 +413,32 @@ class BaseORMModel:
         """
 
         if len(record_id) != len(cls.table_id):
-            raise ValueError("Number of elements in `record_id` does not match the number of columns in `table_id`.")
+            raise ValueError("Invalid number of PK values.")
 
         if len(cls.table_id) != 1:
-            raise NotImplementedError
+            raise NotImplementedError("Composite PK not yet implemented.")
 
-        record = cls.db().select_record_by_id(table=cls.table_name, id=record_id[0])
+        record = cls.db().select_record_by_id(
+            table=cls.table_name,
+            id=record_id[0]
+        )
 
-        if record:
-            record_instance = cls(**record)
-            record_instance._is_dumped = True
-            return record_instance
+        if not record:
+            raise ValueError(f"Record with ID {record_id} not found.")
 
-        else:
-            raise ValueError(f"Id {record_id} does not correspond to any record in the database.")
+        # Crear instancia sin __init__
+        instance = object.__new__(cls)
+
+        # Asignar atributos directamente
+        for col in cls.table_columns:
+            setattr(instance, col, record.get(col))
+
+        # Marcar como persistido
+        instance._is_dumped = True
+
+        return instance
+
+
 
     @classmethod
     def from_parser(cls, parser, **kwargs):
