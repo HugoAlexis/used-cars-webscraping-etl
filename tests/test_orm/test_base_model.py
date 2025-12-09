@@ -1,4 +1,4 @@
-from models_for_test import SiteTest
+from models_for_test import SiteTest, Table1Test, Table2Test, JointTable1Table2Test
 import pytest
 from src.orm.base import BaseORMModel
 import datetime
@@ -243,3 +243,20 @@ def test_basemodel_instance_from_parser_instance():
     assert site.base_url == 'http://example-siteB.com'
     assert getattr(site, '_internal', None) is None
     assert getattr(site, 'other_attribute', None) is None
+
+
+################################################
+##-----------> TESTS FOR COMPOSITE KEY <-------#
+################################################
+
+def test_from_id_composite_pk_returns_instance():
+    r1 = Table1Test(name_t1='value_t1')
+    pk1 = r1.dump()
+    r2 = Table2Test(name_t2='value_t2')
+    pk2 = r2.dump()
+
+    assert len(pk1) == 1
+    assert len(pk2) == 1
+
+    rjoint = JointTable1Table2Test(pk1[0], pk2[0])
+    pk_rjoint = rjoint.dump()

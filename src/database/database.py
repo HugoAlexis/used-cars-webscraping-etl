@@ -14,7 +14,6 @@ class Database:
 
     def __new__(cls, *args, **kwargs):
         use_singleton = kwargs.pop("_use_singleton", True)
-        print(kwargs)
 
         # If not using singleton (for testing)
         if not use_singleton:
@@ -47,7 +46,6 @@ class Database:
 
     def _open_connection(self):
         """Open a new database connection using stored parameters."""
-        print("Oppening a connection...")
         self._connection = psycopg2.connect(**self._connection_kwargs)
         self._connection.autocommit = False
 
