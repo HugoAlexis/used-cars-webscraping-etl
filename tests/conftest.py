@@ -8,6 +8,8 @@ from src.database.database import Database
 from scripts.initialize_database import *
 from tests.test_orm.models_for_test import SiteTest
 
+pytest_plugins = ["requests_mock.mocker"]
+
 load_dotenv(".env.testing")
 
 testing_dbname = "used_cars_webscraping_test"
@@ -52,8 +54,6 @@ def db_instance(db_params):
 
 @pytest.fixture(scope="function", autouse=True)
 def clear_sites_testing_table():
-    print("Deleting all records from sites_testing table")
-    print("Fixture connection:", SiteTest._db_object.connection)
     with SiteTest._db_object.connection.cursor() as cursor:
         cursor.execute("DELETE FROM sites_testing;")
         SiteTest._db_object.connection.commit()
